@@ -1,0 +1,34 @@
+# Pre-commit hooks for basana (Python async trading framework)
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+#
+# Minimal hooks — this is a third-party fork. We guard against secrets and
+# file hygiene issues without imposing linting that conflicts with upstream.
+
+default_stages: [pre-commit]
+
+repos:
+  # ── Secrets & security ───────────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (secrets scan)
+        language: system
+        entry: gitleaks protect --staged --redact --log-level warn
+        pass_filenames: false
+
+  # ── General file hygiene ─────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]  # 1 MB — no large binaries expected in a Python lib
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-json
+      - id: check-yaml
+      - id: check-toml
+      - id: debug-statements       # catch leftover breakpoint()/pdb in Python
+      - id: check-ast              # syntax-check Python files before commit
