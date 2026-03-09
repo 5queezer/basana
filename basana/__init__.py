@@ -65,3 +65,17 @@ from .core.token_bucket import (
     TokenBucketLimiter,
 )
 
+from .quant import (
+    ActionTextSignalPlugin,
+    NormalizedSignal,
+    PaperSimulationEngine,
+    PortfolioRiskManager,
+    PositionSnapshot,
+    RankedTableSignalPlugin,
+    RiskDecision,
+    ScheduledSignalPlugin,
+    SignalSourcePlugin,
+    SignalSourcePluginAdapter,
+    parse_action_text_signals,
+    parse_ranked_table_signals,
+)

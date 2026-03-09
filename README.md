@@ -65,6 +65,37 @@ The Basana repository comes with a number of [examples](./samples) you can exper
 
 **Note that these examples are provided for educational purposes only. Use at your own risk.**
 
+## Quant Abstraction Groundwork
+
+A small Basana-native quant foundation now lives in `basana.quant`.
+
+This slice is intentionally **generic** and keeps repository boundaries clean: it provides framework abstractions and offline examples, but no source-specific adapters.
+
+Included in this pass:
+
+* `NormalizedSignal`: normalized signal schema for strategy outputs.
+* `SignalSourcePlugin` + `SignalSourcePluginAdapter`: plugin interface and adapter that turn plugin output into Basana events.
+* `ScheduledSignalPlugin`: generic queued-signal scheduling over bar events.
+* `RankedTableSignalPlugin` / `parse_ranked_table_signals`: turns a simple ranked markdown table into normalized long signals.
+* `ActionTextSignalPlugin` / `parse_action_text_signals`: turns compact action-oriented text alerts into normalized signals.
+* `PortfolioRiskManager`: enforces `max_positions` and `max_gross_exposure`.
+* `PaperSimulationEngine`: lightweight paper/backtest loop that marks positions to market from bar events.
+* Runnable offline sample: `python3 -m samples.private_quant_backtest`
+
+The sample uses generic fixture-style signal inputs plus `samples/data/quant_btcusdt_day.csv`, so it runs without exchange credentials, API keys, or external downloads.
+
+Run the focused tests with:
+
+```
+$ pytest -q tests/quant
+```
+
+Run the sample with:
+
+```
+$ python3 -m samples.private_quant_backtest
+```
+
 ## Documentation
 
 [https://basana.readthedocs.io/en/latest/](https://basana.readthedocs.io/en/latest/)
