@@ -15,7 +15,6 @@
 # limitations under the License.
 
 from typing import Any, Awaitable, Callable, List, Optional
-import json
 import logging
 
 import aiohttp

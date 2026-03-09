@@ -27,18 +27,21 @@ from basana.core.pair import Pair
 from basana.external.yahoo import bars
 
 
-@pytest.mark.parametrize("order_plan", [
-    {
-        datetime.date(2000, 1, 4): [
-            # Buy market.
-            lambda e: e.create_market_order(exchange.OrderOperation.BUY, Pair("ORCL", "USD"), Decimal("2")),
-        ],
-        datetime.date(2000, 1, 14): [
-            # Sell market.
-            lambda e: e.create_market_order(exchange.OrderOperation.SELL, Pair("ORCL", "USD"), Decimal("1")),
-        ],
-    },
-])
+@pytest.mark.parametrize(
+    "order_plan",
+    [
+        {
+            datetime.date(2000, 1, 4): [
+                # Buy market.
+                lambda e: e.create_market_order(exchange.OrderOperation.BUY, Pair("ORCL", "USD"), Decimal("2")),
+            ],
+            datetime.date(2000, 1, 14): [
+                # Sell market.
+                lambda e: e.create_market_order(exchange.OrderOperation.SELL, Pair("ORCL", "USD"), Decimal("1")),
+            ],
+        },
+    ],
+)
 def test_save_line_chart(order_plan, backtesting_dispatcher, caplog):
     e = exchange.Exchange(
         backtesting_dispatcher,

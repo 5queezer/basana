@@ -40,6 +40,7 @@ class DataPointFromSequence:
 
     :param seq: The sequence that will be used to get the value.
     """
+
     def __init__(self, seq: Sequence[Any]):
         self._seq = seq
 
@@ -95,7 +96,8 @@ class PairLineChart(LineChart):
             x, y = self._get_order_fills(OrderOperation.BUY).get_x_y()
             figure.add_trace(
                 go.Scatter(x=x, y=y, name="Buy", mode="markers", marker=dict(symbol="arrow-up", color="green")),
-                row=row, col=1
+                row=row,
+                col=1,
             )
 
         # Add a trace with sell prices.
@@ -103,7 +105,8 @@ class PairLineChart(LineChart):
             x, y = self._get_order_fills(OrderOperation.SELL).get_x_y()
             figure.add_trace(
                 go.Scatter(x=x, y=y, name="Sell", mode="markers", marker=dict(symbol="arrow-down", color="red")),
-                row=row, col=1
+                row=row,
+                col=1,
             )
 
         # Add one trace per indicator.
@@ -118,8 +121,7 @@ class PairLineChart(LineChart):
     def _get_order_fills(self, op: OrderOperation) -> TimeSeries:
         ret = TimeSeries()
         orders = filter(
-            lambda order: order.pair == self._pair and order.operation == op,
-            self._exchange._get_all_orders()
+            lambda order: order.pair == self._pair and order.operation == op, self._exchange._get_all_orders()
         )
         pair_info = self._exchange._get_pair_info(self._pair)
         for order in orders:
@@ -236,6 +238,7 @@ class LineCharts:
 
     :param exchange: The backtesting exchange.
     """
+
     def __init__(self, exchange: Exchange):
         self._exchange = exchange
         self._balance_charts: Dict[str, AccountBalanceLineChart] = collections.OrderedDict()
@@ -307,8 +310,12 @@ class LineCharts:
             fig.show()
 
     def save(
-            self, path: str, width: Optional[int] = None, height: Optional[int] = None,
-            scale: Optional[Union[int, float]] = None, show_legend: bool = True
+        self,
+        path: str,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        scale: Optional[Union[int, float]] = None,
+        show_legend: bool = True,
     ):
         """Saves the chart to a file.
 

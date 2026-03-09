@@ -75,14 +75,22 @@ def test_ranked_table_plugin_emits_only_due_signals():
         source="fixture-ranked",
     )
     instrument = bs.Pair("BTC", "USDT")
-    due = asyncio.run(plugin.on_bar(_build_bar_event(
-        datetime.datetime(2021, 1, 2, tzinfo=datetime.timezone.utc),
-        instrument,
-    )))
-    not_due = asyncio.run(plugin.on_bar(_build_bar_event(
-        datetime.datetime(2021, 1, 3, tzinfo=datetime.timezone.utc),
-        instrument,
-    )))
+    due = asyncio.run(
+        plugin.on_bar(
+            _build_bar_event(
+                datetime.datetime(2021, 1, 2, tzinfo=datetime.timezone.utc),
+                instrument,
+            )
+        )
+    )
+    not_due = asyncio.run(
+        plugin.on_bar(
+            _build_bar_event(
+                datetime.datetime(2021, 1, 3, tzinfo=datetime.timezone.utc),
+                instrument,
+            )
+        )
+    )
 
     assert len(due) == 1
     assert due[0].pair == instrument
@@ -96,14 +104,22 @@ def test_action_text_plugin_emits_matching_pair_only_once():
         source="fixture-actions",
     )
     instrument = bs.Pair("BTC", "USDT")
-    first = asyncio.run(plugin.on_bar(_build_bar_event(
-        datetime.datetime(2021, 1, 2, tzinfo=datetime.timezone.utc),
-        instrument,
-    )))
-    second = asyncio.run(plugin.on_bar(_build_bar_event(
-        datetime.datetime(2021, 1, 4, tzinfo=datetime.timezone.utc),
-        instrument,
-    )))
+    first = asyncio.run(
+        plugin.on_bar(
+            _build_bar_event(
+                datetime.datetime(2021, 1, 2, tzinfo=datetime.timezone.utc),
+                instrument,
+            )
+        )
+    )
+    second = asyncio.run(
+        plugin.on_bar(
+            _build_bar_event(
+                datetime.datetime(2021, 1, 4, tzinfo=datetime.timezone.utc),
+                instrument,
+            )
+        )
+    )
 
     assert [signal.position for signal in first] == [bs.Position.LONG]
     assert [signal.position for signal in second] == [bs.Position.NEUTRAL]

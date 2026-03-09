@@ -28,8 +28,13 @@ logger = logging.getLogger(__name__)
 class Bar(bar.Bar):
     def __init__(self, pair: Pair, json: dict):
         super().__init__(
-            helpers.timestamp_to_datetime(int(json["t"])), pair, Decimal(json["o"]), Decimal(json["h"]),
-            Decimal(json["l"]), Decimal(json["c"]), Decimal(json["v"])
+            helpers.timestamp_to_datetime(int(json["t"])),
+            pair,
+            Decimal(json["o"]),
+            Decimal(json["h"]),
+            Decimal(json["l"]),
+            Decimal(json["c"]),
+            Decimal(json["v"]),
         )
         self.pair: Pair = pair
         self.json: dict = json
@@ -47,10 +52,12 @@ class WebSocketEventSource(core_ws.ChannelEventSource):
         # Wait for the last update to the kline.
         if kline["x"] is False:
             return
-        self.push(bar.BarEvent(
-            helpers.timestamp_to_datetime(int(kline_event["E"])),  # Event time
-            Bar(self._pair, kline)
-        ))
+        self.push(
+            bar.BarEvent(
+                helpers.timestamp_to_datetime(int(kline_event["E"])),  # Event time
+                Bar(self._pair, kline),
+            )
+        )
 
 
 def get_channel(pair: Pair, interval: str) -> str:

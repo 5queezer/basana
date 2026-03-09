@@ -43,9 +43,7 @@ def test_prices():
     p = prices.Prices(bid_ask_spread_pct=Decimal("1"), config=conf)
 
     now = dt.local_now()
-    p.on_bar_event(
-        BarEvent(now, Bar(now, pair, Decimal(10), Decimal(10), Decimal(10), Decimal(10), Decimal(10)))
-    )
+    p.on_bar_event(BarEvent(now, Bar(now, pair, Decimal(10), Decimal(10), Decimal(10), Decimal(10), Decimal(10))))
 
     assert p.get_bid_ask(pair) == (Decimal("9.95"), Decimal("10.05"))
     assert p.get_last_price(pair) == Decimal(10)
@@ -70,27 +68,22 @@ def test_convert_value_map():
     now = dt.local_now()
     p.on_bar_event(
         BarEvent(
-            now,
-            Bar(now, btc_usdt, Decimal(50000), Decimal(50000), Decimal(50000), Decimal(50000), Decimal(50000))
+            now, Bar(now, btc_usdt, Decimal(50000), Decimal(50000), Decimal(50000), Decimal(50000), Decimal(50000))
         )
     )
     p.on_bar_event(
-        BarEvent(
-            now,
-            Bar(now, eth_usdt, Decimal(3000), Decimal(3000), Decimal(3000), Decimal(3000), Decimal(3000))
-        )
+        BarEvent(now, Bar(now, eth_usdt, Decimal(3000), Decimal(3000), Decimal(3000), Decimal(3000), Decimal(3000)))
     )
     p.on_bar_event(
         BarEvent(
-            now,
-            Bar(now, eth_btc, Decimal("0.06"), Decimal("0.06"), Decimal("0.06"), Decimal("0.06"), Decimal("0.06"))
+            now, Bar(now, eth_btc, Decimal("0.06"), Decimal("0.06"), Decimal("0.06"), Decimal("0.06"), Decimal("0.06"))
         )
     )
 
     # Test converting a value map to USDT
     values = {
-        "BTC": Decimal("2.0"),      # 2 BTC
-        "ETH": Decimal("10.0"),     # 10 ETH
+        "BTC": Decimal("2.0"),  # 2 BTC
+        "ETH": Decimal("10.0"),  # 10 ETH
         "USDT": Decimal("1000.0"),  # 1000 USDT
     }
 

@@ -43,8 +43,14 @@ class Bar:
     """
 
     def __init__(
-            self, datetime: datetime.datetime, pair: pair.Pair,
-            open: Decimal, high: Decimal, low: Decimal, close: Decimal, volume: Decimal
+        self,
+        datetime: datetime.datetime,
+        pair: pair.Pair,
+        open: Decimal,
+        high: Decimal,
+        low: Decimal,
+        close: Decimal,
+        volume: Decimal,
     ):
         if high < low:
             raise InvalidBar(f"high < low on {datetime}")
@@ -105,9 +111,11 @@ class RealTimeTradesToBar(event.FifoQueueEventSource, event.Producer):
     def push_trade(self, when: datetime.datetime, price: Decimal, amount: Decimal):
         # Trades must arrive in order.
         if self._next_trade_ge and when < self._next_trade_ge:
-            self.on_error(logs.StructuredMessage(
-                "Trade pushed out of order", last=self._next_trade_ge, current=when, pair=self._pair
-            ))
+            self.on_error(
+                logs.StructuredMessage(
+                    "Trade pushed out of order", last=self._next_trade_ge, current=when, pair=self._pair
+                )
+            )
             return
 
         self._trades.append((when, price, amount))
@@ -128,9 +136,11 @@ class RealTimeTradesToBar(event.FifoQueueEventSource, event.Producer):
         # Calculate open, high, low, close and volume in the given window.
         for i, (when, price, amount) in enumerate(self._trades):
             if when < begin:
-                self.on_error(logs.StructuredMessage(
-                    "Trade is out of order", datetime=when, begin=begin, end=end, pair=self._pair
-                ))
+                self.on_error(
+                    logs.StructuredMessage(
+                        "Trade is out of order", datetime=when, begin=begin, end=end, pair=self._pair
+                    )
+                )
                 continue
             # If the trade belongs to a future window, then we're done processing the current window.
             if when > end:

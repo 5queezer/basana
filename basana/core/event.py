@@ -99,6 +99,7 @@ class FifoQueueEventSource(EventSource):
     :param producer: An optional producer associated with this event source.
     :param events: An optional list of initial events.
     """
+
     def __init__(self, producer: Optional[Producer] = None, events: List[Event] = []):
         super().__init__(producer)
         self._queue = deque(events)

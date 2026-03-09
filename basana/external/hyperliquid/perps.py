@@ -87,15 +87,17 @@ class Account:
             pos = p.get("position", {})
             if pos.get("szi") == "0":
                 continue
-            positions.append(Position(
-                coin=pos["coin"],
-                size=Decimal(pos["szi"]),
-                entry_price=Decimal(pos["entryPx"]) if pos.get("entryPx") else Decimal(0),
-                unrealized_pnl=Decimal(pos.get("unrealizedPnl", "0")),
-                liquidation_price=Decimal(pos["liquidationPx"]) if pos.get("liquidationPx") else None,
-                leverage=Decimal(str(pos.get("leverage", {}).get("value", 1))),
-                margin_used=Decimal(pos.get("marginUsed", "0")),
-            ))
+            positions.append(
+                Position(
+                    coin=pos["coin"],
+                    size=Decimal(pos["szi"]),
+                    entry_price=Decimal(pos["entryPx"]) if pos.get("entryPx") else Decimal(0),
+                    unrealized_pnl=Decimal(pos.get("unrealizedPnl", "0")),
+                    liquidation_price=Decimal(pos["liquidationPx"]) if pos.get("liquidationPx") else None,
+                    leverage=Decimal(str(pos.get("leverage", {}).get("value", 1))),
+                    margin_used=Decimal(pos.get("marginUsed", "0")),
+                )
+            )
         return positions
 
     async def get_balance(self) -> Decimal:
@@ -123,7 +125,13 @@ class Account:
     # Order management
     # ------------------------------------------------------------------
 
-    async def market_open(self, coin: str, operation: OrderOperation, size: Decimal, slippage: float = 0.01) -> OrderInfo:
+    async def market_open(
+        self,
+        coin: str,
+        operation: OrderOperation,
+        size: Decimal,
+        slippage: float = 0.01,
+    ) -> OrderInfo:
         """Open a position at market price.
 
         :param coin: e.g. ``"ETH"``

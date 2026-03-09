@@ -38,9 +38,7 @@ async def main():
     event_dispatcher = bs.backtesting_dispatcher()
     pair = bs.Pair("BTC", "USDT")
     exchange = backtesting_exchange.Exchange(
-        event_dispatcher,
-        initial_balances={pair.quote_symbol: Decimal(1200)},
-        immediate_order_processing=True
+        event_dispatcher, initial_balances={pair.quote_symbol: Decimal(1200)}, immediate_order_processing=True
     )
     exchange.set_symbol_precision(pair.base_symbol, 8)
     exchange.set_symbol_precision(pair.quote_symbol, 2)
@@ -51,8 +49,11 @@ async def main():
 
     # Connect the position manager to different types of events. Borrowing is disabled in this example.
     position_mgr = position_manager.PositionManager(
-        exchange, position_amount=Decimal(1000), quote_symbol=pair.quote_symbol, stop_loss_pct=Decimal(5),
-        borrowing_disabled=True
+        exchange,
+        position_amount=Decimal(1000),
+        quote_symbol=pair.quote_symbol,
+        stop_loss_pct=Decimal(5),
+        borrowing_disabled=True,
     )
     strategy.subscribe_to_trading_signals(position_mgr.on_trading_signal)
     exchange.subscribe_to_bar_events(pair, position_mgr.on_bar_event)
@@ -73,9 +74,7 @@ async def main():
     # Log balances.
     balances = await exchange.get_balances()
     for currency, balance in balances.items():
-        logging.info(StructuredMessage(
-            f"{currency} balance", available=balance.available
-        ))
+        logging.info(StructuredMessage(f"{currency} balance", available=balance.available))
 
     chart.show()
 

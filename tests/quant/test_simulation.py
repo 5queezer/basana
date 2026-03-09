@@ -21,13 +21,15 @@ class LongOnFirstReadyPlugin(SignalSourcePlugin):
         if self._sent:
             return []
         self._sent = True
-        return [NormalizedSignal(
-            when=bar_event.when,
-            pair=self._pair,
-            position=bs.Position.LONG,
-            source="test-plugin",
-            target_gross_exposure=Decimal("1.0"),
-        )]
+        return [
+            NormalizedSignal(
+                when=bar_event.when,
+                pair=self._pair,
+                position=bs.Position.LONG,
+                source="test-plugin",
+                target_gross_exposure=Decimal("1.0"),
+            )
+        ]
 
 
 def test_paper_simulation_engine_runs_end_to_end(backtesting_dispatcher):

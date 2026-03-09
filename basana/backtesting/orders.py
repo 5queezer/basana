@@ -89,8 +89,13 @@ class OrderInfo:
 # This is an internal abstraction to be used by the exchange.
 class Order(metaclass=abc.ABCMeta):
     def __init__(
-            self, id: str, operation: OrderOperation, pair: Pair, amount: Decimal,
-            auto_borrow: bool = False, auto_repay: bool = False
+        self,
+        id: str,
+        operation: OrderOperation,
+        pair: Pair,
+        amount: Decimal,
+        auto_borrow: bool = False,
+        auto_repay: bool = False,
     ):
         assert amount > Decimal(0), f"Invalid amount {amount}"
 
@@ -178,17 +183,21 @@ class Order(metaclass=abc.ABCMeta):
 
     def get_order_info(self) -> OrderInfo:
         return OrderInfo(
-            id=self.id, pair=self.pair, is_open=self._state == OrderState.OPEN, operation=self.operation,
-            amount=self.amount, amount_filled=self.amount_filled, amount_remaining=self.amount_pending,
+            id=self.id,
+            pair=self.pair,
+            is_open=self._state == OrderState.OPEN,
+            operation=self.operation,
+            amount=self.amount,
+            amount_filled=self.amount_filled,
+            amount_remaining=self.amount_pending,
             quote_amount_filled=self.quote_amount_filled,
             fees={symbol: -amount for symbol, amount in self._fees.items() if amount},
-            loan_ids=[loan_id for loan_id in self._loan_ids], fills=self.fills
+            loan_ids=[loan_id for loan_id in self._loan_ids],
+            fills=self.fills,
         )
 
     @abc.abstractmethod
-    def get_balance_updates(
-            self, bar: bar.Bar, liquidity_strategy: liquidity.LiquidityStrategy
-    ) -> Dict[str, Decimal]:
+    def get_balance_updates(self, bar: bar.Bar, liquidity_strategy: liquidity.LiquidityStrategy) -> Dict[str, Decimal]:
         """
         Returns the balance updates required to fill the order.
 
@@ -228,8 +237,13 @@ class Order(metaclass=abc.ABCMeta):
 
 class MarketOrder(Order):
     def __init__(
-            self, id: str, operation: OrderOperation, pair: Pair, amount: Decimal,
-            auto_borrow: bool = False, auto_repay: bool = False
+        self,
+        id: str,
+        operation: OrderOperation,
+        pair: Pair,
+        amount: Decimal,
+        auto_borrow: bool = False,
+        auto_repay: bool = False,
     ):
         super().__init__(id, operation, pair, amount, auto_borrow=auto_borrow, auto_repay=auto_repay)
 
@@ -251,16 +265,19 @@ class MarketOrder(Order):
             assert self.operation == OrderOperation.SELL
             price = slipped_price(bar.open, self.operation, amount, liquidity_strategy)
 
-        return {
-            self.pair.base_symbol: amount * base_sign,
-            self.pair.quote_symbol: price * amount * -base_sign
-        }
+        return {self.pair.base_symbol: amount * base_sign, self.pair.quote_symbol: price * amount * -base_sign}
 
 
 class LimitOrder(Order):
     def __init__(
-            self, id: str, operation: OrderOperation, pair: Pair, amount: Decimal, limit_price: Decimal,
-            auto_borrow: bool = False, auto_repay: bool = False
+        self,
+        id: str,
+        operation: OrderOperation,
+        pair: Pair,
+        amount: Decimal,
+        limit_price: Decimal,
+        auto_borrow: bool = False,
+        auto_repay: bool = False,
     ):
         assert limit_price > Decimal(0), "Invalid limit_price {limit_price}"
 
@@ -293,10 +310,7 @@ class LimitOrder(Order):
 
         ret = {}
         if amount and price:
-            ret = {
-                self.pair.base_symbol: amount * base_sign,
-                self.pair.quote_symbol: price * amount * -base_sign
-            }
+            ret = {self.pair.base_symbol: amount * base_sign, self.pair.quote_symbol: price * amount * -base_sign}
         return ret
 
     def calculate_estimated_fill_price(self) -> Optional[Decimal]:
@@ -316,8 +330,14 @@ class LimitOrder(Order):
 
 class StopOrder(Order):
     def __init__(
-            self, id: str, operation: OrderOperation, pair: Pair, amount: Decimal, stop_price: Decimal,
-            auto_borrow: bool = False, auto_repay: bool = False
+        self,
+        id: str,
+        operation: OrderOperation,
+        pair: Pair,
+        amount: Decimal,
+        stop_price: Decimal,
+        auto_borrow: bool = False,
+        auto_repay: bool = False,
     ):
         assert stop_price > Decimal(0), "Invalid stop_price {stop_price}"
 
@@ -361,10 +381,7 @@ class StopOrder(Order):
 
         ret = {}
         if price:
-            ret = {
-                self.pair.base_symbol: amount * base_sign,
-                self.pair.quote_symbol: price * amount * -base_sign
-            }
+            ret = {self.pair.base_symbol: amount * base_sign, self.pair.quote_symbol: price * amount * -base_sign}
         return ret
 
     def calculate_estimated_fill_price(self) -> Optional[Decimal]:
@@ -384,8 +401,15 @@ class StopOrder(Order):
 
 class StopLimitOrder(Order):
     def __init__(
-            self, id: str, operation: OrderOperation, pair: Pair, amount: Decimal, stop_price: Decimal,
-            limit_price: Decimal, auto_borrow: bool = False, auto_repay: bool = False
+        self,
+        id: str,
+        operation: OrderOperation,
+        pair: Pair,
+        amount: Decimal,
+        stop_price: Decimal,
+        limit_price: Decimal,
+        auto_borrow: bool = False,
+        auto_repay: bool = False,
     ):
         assert stop_price > Decimal(0), "Invalid stop_price {stop_price}"
         assert limit_price > Decimal(0), "Invalid limit_price {limit_price}"
@@ -396,7 +420,7 @@ class StopLimitOrder(Order):
         self._stop_price_hit = False
 
     def get_balance_updates_before_stop_hit(
-            self, bar: bar.Bar, liquidity_strategy: liquidity.LiquidityStrategy
+        self, bar: bar.Bar, liquidity_strategy: liquidity.LiquidityStrategy
     ) -> Dict[str, Decimal]:
         assert not self._stop_price_hit
 
@@ -446,15 +470,12 @@ class StopLimitOrder(Order):
 
         ret = {}
         if amount and price:
-            ret = {
-                self.pair.base_symbol: amount * base_sign,
-                self.pair.quote_symbol: price * amount * -base_sign
-            }
+            ret = {self.pair.base_symbol: amount * base_sign, self.pair.quote_symbol: price * amount * -base_sign}
 
         return ret
 
     def get_balance_updates_after_stop_hit(
-            self, bar: bar.Bar, liquidity_strategy: liquidity.LiquidityStrategy
+        self, bar: bar.Bar, liquidity_strategy: liquidity.LiquidityStrategy
     ) -> Dict[str, Decimal]:
         price = None
         amount = min(self.amount_pending, liquidity_strategy.available_liquidity)
@@ -478,15 +499,10 @@ class StopLimitOrder(Order):
 
         ret = {}
         if amount and price:
-            ret = {
-                self.pair.base_symbol: amount * base_sign,
-                self.pair.quote_symbol: price * amount * -base_sign
-            }
+            ret = {self.pair.base_symbol: amount * base_sign, self.pair.quote_symbol: price * amount * -base_sign}
         return ret
 
-    def get_balance_updates(
-            self, bar: bar.Bar, liquidity_strategy: liquidity.LiquidityStrategy
-    ) -> Dict[str, Decimal]:
+    def get_balance_updates(self, bar: bar.Bar, liquidity_strategy: liquidity.LiquidityStrategy) -> Dict[str, Decimal]:
         if not self._stop_price_hit:
             ret = self.get_balance_updates_before_stop_hit(bar, liquidity_strategy)
         else:
@@ -511,15 +527,19 @@ class StopLimitOrder(Order):
 
 
 def slipped_price(
-        price: Decimal, operation: OrderOperation, amount: Decimal, liquidity_strategy: liquidity.LiquidityStrategy,
-        cap_low: Optional[Decimal] = None, cap_high: Optional[Decimal] = None
+    price: Decimal,
+    operation: OrderOperation,
+    amount: Decimal,
+    liquidity_strategy: liquidity.LiquidityStrategy,
+    cap_low: Optional[Decimal] = None,
+    cap_high: Optional[Decimal] = None,
 ) -> Decimal:
     price_impact = liquidity_strategy.calculate_price_impact(amount)
     if operation == OrderOperation.BUY:
-        price *= (Decimal(1) + price_impact)
+        price *= Decimal(1) + price_impact
     else:
         assert operation == OrderOperation.SELL
-        price *= (Decimal(1) - price_impact)
+        price *= Decimal(1) - price_impact
 
     if cap_low is not None:
         price = max(price, cap_low)

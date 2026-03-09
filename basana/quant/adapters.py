@@ -80,13 +80,15 @@ class RankedTableSignalPlugin(ScheduledSignalPlugin):
         source: str = "ranked-table",
         top_n: Optional[int] = None,
     ) -> "RankedTableSignalPlugin":
-        return cls(parse_ranked_table_signals(
-            markdown,
-            default_when=default_when,
-            quote_symbol=quote_symbol,
-            source=source,
-            top_n=top_n,
-        ))
+        return cls(
+            parse_ranked_table_signals(
+                markdown,
+                default_when=default_when,
+                quote_symbol=quote_symbol,
+                source=source,
+                top_n=top_n,
+            )
+        )
 
 
 class ActionTextSignalPlugin(ScheduledSignalPlugin):
@@ -99,12 +101,14 @@ class ActionTextSignalPlugin(ScheduledSignalPlugin):
         quote_symbol: str = "USDT",
         source: str = "action-text",
     ) -> "ActionTextSignalPlugin":
-        return cls(parse_action_text_signals(
-            text,
-            default_when=default_when,
-            quote_symbol=quote_symbol,
-            source=source,
-        ))
+        return cls(
+            parse_action_text_signals(
+                text,
+                default_when=default_when,
+                quote_symbol=quote_symbol,
+                source=source,
+            )
+        )
 
 
 def parse_ranked_table_signals(
@@ -126,19 +130,21 @@ def parse_ranked_table_signals(
         score = _coerce_decimal(match.group("score"), "score")
         if score < 0 or score > 100:
             raise ValueError(f"score out of range: {score}")
-        signals.append(NormalizedSignal(
-            when=_parse_when(match.group("time"), default_when),
-            pair=_normalize_pair(match.group("symbol"), quote_symbol),
-            position=enums.Position.LONG,
-            source=source,
-            strength=(score / Decimal("100")).quantize(Decimal("0.001")),
-            target_gross_exposure=(Decimal("1") / Decimal(rank)).quantize(Decimal("0.001")),
-            metadata={
-                "rank": rank,
-                "score": str(score),
-                "secondary_rank": int(match.group("secondary_rank")),
-            },
-        ))
+        signals.append(
+            NormalizedSignal(
+                when=_parse_when(match.group("time"), default_when),
+                pair=_normalize_pair(match.group("symbol"), quote_symbol),
+                position=enums.Position.LONG,
+                source=source,
+                strength=(score / Decimal("100")).quantize(Decimal("0.001")),
+                target_gross_exposure=(Decimal("1") / Decimal(rank)).quantize(Decimal("0.001")),
+                metadata={
+                    "rank": rank,
+                    "score": str(score),
+                    "secondary_rank": int(match.group("secondary_rank")),
+                },
+            )
+        )
     if not signals:
         raise ValueError("no ranked table rows found")
     return signals
@@ -176,15 +182,17 @@ def parse_action_text_signals(
         price = match.group("price")
         if price is not None:
             metadata["trigger_price"] = price
-        signals.append(NormalizedSignal(
-            when=_parse_when(match.group("ts"), default_when),
-            pair=_normalize_pair(match.group("symbol"), quote_symbol),
-            position=position,
-            source=source,
-            strength=Decimal("1"),
-            target_gross_exposure=Decimal("1") if position != enums.Position.NEUTRAL else Decimal("0"),
-            metadata=metadata,
-        ))
+        signals.append(
+            NormalizedSignal(
+                when=_parse_when(match.group("ts"), default_when),
+                pair=_normalize_pair(match.group("symbol"), quote_symbol),
+                position=position,
+                source=source,
+                strength=Decimal("1"),
+                target_gross_exposure=Decimal("1") if position != enums.Position.NEUTRAL else Decimal("0"),
+                metadata=metadata,
+            )
+        )
     if not signals:
         raise ValueError("no action text signals found")
     return signals

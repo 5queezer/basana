@@ -1,21 +1,19 @@
 # Pre-commit hooks for basana (Python async trading framework)
 # Install: pre-commit install
 # Run manually: pre-commit run --all-files
-#
-# Minimal hooks — this is a third-party fork. We guard against secrets and
-# file hygiene issues without imposing linting that conflicts with upstream.
 
 default_stages: [pre-commit]
+fail_fast: false
 
 repos:
   # ── Secrets & security ───────────────────────────────────────────────────
-  - repo: local
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
     hooks:
-      - id: gitleaks
-        name: gitleaks (secrets scan)
-        language: system
-        entry: gitleaks protect --staged --redact --log-level warn
-        pass_filenames: false
+      - id: detect-secrets
+        args:
+          - --exclude-files
+          - ^(poetry\.lock|tests/.*)$
 
   # ── General file hygiene ─────────────────────────────────────────────────
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -23,12 +21,36 @@ repos:
     hooks:
       - id: detect-private-key
       - id: check-added-large-files
-        args: ["--maxkb=1024"]  # 1 MB — no large binaries expected in a Python lib
+        args: ["--maxkb=1024"]
       - id: check-merge-conflict
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-json
       - id: check-yaml
       - id: check-toml
-      - id: debug-statements       # catch leftover breakpoint()/pdb in Python
-      - id: check-ast              # syntax-check Python files before commit
+      - id: debug-statements
+      - id: check-ast
+
+  # ── Python QA ────────────────────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.5
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.6
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml, -q, -r, basana, samples]
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: pytest-compile-smoke
+        name: pytest collection smoke check
+        entry: python -m pytest --collect-only -q
+        language: system
+        pass_filenames: false
+        stages: [manual]

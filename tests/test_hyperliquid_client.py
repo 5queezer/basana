@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import asyncio
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 import pytest
 
 from basana.external.hyperliquid.client.rest import APIClient, Error
@@ -24,6 +24,7 @@ from basana.external.hyperliquid.client.rest import APIClient, Error
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def mock_info():
@@ -49,6 +50,7 @@ def mock_account():
 # ---------------------------------------------------------------------------
 # Public market data
 # ---------------------------------------------------------------------------
+
 
 class TestPublicEndpoints:
     def test_get_all_mids(self, mock_info):
@@ -98,6 +100,7 @@ class TestPublicEndpoints:
 # Auth guard
 # ---------------------------------------------------------------------------
 
+
 class TestAuthGuard:
     def test_get_user_state_without_key_raises(self, mock_info):
         cli = APIClient()
@@ -118,6 +121,7 @@ class TestAuthGuard:
 # ---------------------------------------------------------------------------
 # Authenticated endpoints
 # ---------------------------------------------------------------------------
+
 
 class TestAuthenticatedEndpoints:
     def test_get_user_state(self, mock_info, mock_account, mock_exchange_sdk):
