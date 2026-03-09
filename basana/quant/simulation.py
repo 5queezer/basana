@@ -39,7 +39,8 @@ class PaperSimulationEngine:
         if previous is not None and position is not None and previous != 0:
             direction = Decimal("1") if position.position == enums.Position.LONG else Decimal("-1")
             change = (close - previous) / previous
-            self._equity += position.gross_exposure * direction * change
+            pnl = self._equity * position.gross_exposure * direction * change
+            self._equity += pnl
         self._last_prices[instrument] = close
         self._risk_manager.mark_price(instrument, close)
 

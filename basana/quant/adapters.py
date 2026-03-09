@@ -56,16 +56,24 @@ class ScheduledSignalPlugin(SignalSourcePlugin):
     def __init__(self, signals: Sequence[NormalizedSignal]):
         self._signals = sorted(signals, key=lambda signal: signal.when)
         self._next_index = 0
+        self._pending: List[NormalizedSignal] = []
 
     async def on_bar(self, bar_event: bar.BarEvent) -> Sequence[NormalizedSignal]:
-        ready: List[NormalizedSignal] = []
         while self._next_index < len(self._signals):
             signal = self._signals[self._next_index]
             if signal.when > bar_event.when:
                 break
+            self._pending.append(signal)
             self._next_index += 1
-            if signal.pair == bar_event.bar.pair:
+
+        ready: List[NormalizedSignal] = []
+        still_pending: List[NormalizedSignal] = []
+        for signal in self._pending:
+            if signal.pair == bar_event.bar.pair and signal.when <= bar_event.when:
                 ready.append(signal)
+            else:
+                still_pending.append(signal)
+        self._pending = still_pending
         return ready
 
 
