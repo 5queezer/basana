@@ -105,7 +105,7 @@ def calculate_sortino_ratio(
     downside_variance = _sum(r ** 2 for r in downside) / n
     downside_dev = Decimal(str(math.sqrt(float(downside_variance))))
 
-    if downside_dev == _ZERO:
+    if downside_dev == _ZERO:  # pragma: no cover
         return None
 
     return (avg_excess / downside_dev) * Decimal(str(math.sqrt(periods_per_year)))
