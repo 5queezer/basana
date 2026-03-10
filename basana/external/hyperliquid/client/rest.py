@@ -19,12 +19,17 @@ import asyncio
 import functools
 import logging
 
-import eth_account
-from hyperliquid.info import Info  # type: ignore[import-untyped]
-from hyperliquid.exchange import Exchange as HLExchange  # type: ignore[import-untyped]
-
 from basana.core.config import get_config_value
 from basana.external.hyperliquid import config
+
+try:
+    import eth_account  # type: ignore[import-untyped]
+    from hyperliquid.info import Info  # type: ignore[import-untyped]
+    from hyperliquid.exchange import Exchange as HLExchange  # type: ignore[import-untyped]
+except ImportError:
+    eth_account = None  # type: ignore[assignment]
+    Info = None  # type: ignore[assignment, misc]
+    HLExchange = None  # type: ignore[assignment, misc]
 
 
 logger = logging.getLogger(__name__)
@@ -55,9 +60,14 @@ class APIClient:
         if config_overrides is None:
             config_overrides = {}
         base_url = get_config_value(config.DEFAULTS, "api.http.base_url", overrides=config_overrides).rstrip("/")
+        if Info is None:
+            raise ImportError(
+                "Hyperliquid support requires the [hyperliquid] extra. "
+                "Install with: pip install basana[hyperliquid]"
+            )
         self._info = Info(base_url, skip_ws=True)
         self._wallet: Optional[Any] = None
-        self._exchange: Optional[HLExchange] = None
+        self._exchange: Optional[Any] = None
 
         if private_key:
             self._wallet = eth_account.Account.from_key(private_key)

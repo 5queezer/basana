@@ -44,12 +44,11 @@ jobs:
         sudo apt-get update
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools
+        python -m pip install --upgrade pip
         pip install poetry
     - name: Initialize the virtual environment.
       run: |
         poetry install --no-root --all-extras --without=docs
-        poetry run pip install setuptools
     - name: Static checks
       run: |
         poetry run -- mypy basana
