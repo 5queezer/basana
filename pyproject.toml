@@ -24,6 +24,7 @@ charts = ["plotly", "kaleido"]
 hyperliquid = ["hyperliquid-python-sdk", "eth-account"]
 
 [tool.poetry.group.dev.dependencies]
+setuptools = ">=70.0"
 aioresponses = "^0.7.7"
 mypy = "^1.11"
 pytest = "^8.3"
