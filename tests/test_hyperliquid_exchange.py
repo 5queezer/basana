@@ -217,6 +217,31 @@ class TestWebSocketRouting:
 # ---------------------------------------------------------------------------
 
 
+class TestTestnetConfig:
+    def test_testnet_exchange(self, mock_api_client, mock_ws_client):
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d, testnet=True)
+        assert exchange is not None
+
+    def test_testnet_with_overrides(self, mock_api_client, mock_ws_client):
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(
+            dispatcher=d,
+            testnet=True,
+            config_overrides={"api": {"http": {"timeout": 30}}},
+        )
+        assert exchange is not None
+
+
+class TestHelpers:
+    def test_pair_to_coin(self):
+        from basana.external.hyperliquid.helpers import pair_to_coin
+        from basana.core.pair import Pair
+
+        assert pair_to_coin(Pair("eth", "usd")) == "ETH"
+        assert pair_to_coin(Pair("BTC", "USD")) == "BTC"
+
+
 class TestLifecycle:
     def test_perps_account_accessible(self, exchange):
         from basana.external.hyperliquid.perps import Account
@@ -239,3 +264,122 @@ class TestPerpsAccount:
         d.subscribe.assert_called_once()
         subscribe_args = d.subscribe.call_args[0]
         assert subscribe_args[1] is handler
+
+    def test_subscribe_to_fill_events_no_key_raises(self, mock_api_client, mock_ws_client):
+        mock_api_client.address = None
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d)
+        with pytest.raises(Exception, match="Private key required"):
+            exchange.perps_account.subscribe_to_fill_events(AsyncMock())
+
+    def test_get_positions(self, mock_api_client, mock_ws_client):
+        mock_api_client.get_user_state = AsyncMock(return_value={
+            "marginSummary": {"accountValue": "10000"},
+            "assetPositions": [{
+                "position": {
+                    "coin": "ETH", "szi": "1.0", "entryPx": "2000",
+                    "unrealizedPnl": "100", "liquidationPx": "1800",
+                    "leverage": {"value": 10}, "marginUsed": "200",
+                }
+            }, {
+                "position": {"coin": "BTC", "szi": "0"}  # should be skipped
+            }],
+        })
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d, private_key="0xdeadbeef")
+        positions = asyncio.run(exchange.perps_account.get_positions())
+        assert len(positions) == 1
+        assert positions[0].coin == "ETH"
+        assert positions[0].size == Decimal("1.0")
+        assert positions[0].leverage == Decimal("10")
+
+    def test_get_balance(self, mock_api_client, mock_ws_client):
+        mock_api_client.get_user_state = AsyncMock(return_value={
+            "marginSummary": {"accountValue": "5000.0"},
+            "assetPositions": [],
+        })
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d, private_key="0xdeadbeef")
+        balance = asyncio.run(exchange.perps_account.get_balance())
+        assert balance == Decimal("5000.0")
+
+    def test_get_open_orders(self, mock_api_client, mock_ws_client):
+        mock_api_client.get_open_orders = AsyncMock(return_value=[
+            {"oid": 1, "coin": "ETH", "side": "B", "sz": "0.5", "limitPx": "2000", "orderType": "Limit"},
+        ])
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d, private_key="0xdeadbeef")
+        orders = asyncio.run(exchange.perps_account.get_open_orders())
+        assert len(orders) == 1
+        assert orders[0].oid == 1
+        assert orders[0].is_buy is True
+
+    def test_market_open(self, mock_api_client, mock_ws_client):
+        mock_api_client.market_open = AsyncMock(return_value={
+            "response": {"data": {"statuses": [{"filled": {"oid": 7, "totalSz": "0.5", "side": "B"}}]}}
+        })
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d, private_key="0xdeadbeef")
+        from basana.core.enums import OrderOperation
+        order = asyncio.run(exchange.perps_account.market_open("ETH", OrderOperation.BUY, Decimal("0.5")))
+        assert order.is_buy is True
+        assert order.filled == Decimal("0.5")
+
+    def test_market_close(self, mock_api_client, mock_ws_client):
+        mock_api_client.market_close = AsyncMock(return_value={
+            "response": {"data": {"statuses": [{"filled": {"oid": 8, "totalSz": "0.5", "side": "A"}}]}}
+        })
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d, private_key="0xdeadbeef")
+        order = asyncio.run(exchange.perps_account.market_close("ETH"))
+        assert order.filled == Decimal("0.5")
+
+    def test_limit_order(self, mock_api_client, mock_ws_client):
+        mock_api_client.limit_order = AsyncMock(return_value={
+            "response": {"data": {"statuses": [{"filled": {"oid": 9, "totalSz": "1.0", "side": "B"}}]}}
+        })
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d, private_key="0xdeadbeef")
+        from basana.core.enums import OrderOperation
+        order = asyncio.run(exchange.perps_account.limit_order(
+            "ETH", OrderOperation.BUY, Decimal("1.0"), Decimal("2000"), reduce_only=True
+        ))
+        assert order.oid == 9
+
+    def test_cancel_order(self, mock_api_client, mock_ws_client):
+        mock_api_client.cancel_order = AsyncMock(return_value={"status": "ok"})
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d, private_key="0xdeadbeef")
+        asyncio.run(exchange.perps_account.cancel_order("ETH", 123))
+        mock_api_client.cancel_order.assert_called_once_with("ETH", 123)
+
+    def test_set_leverage(self, mock_api_client, mock_ws_client):
+        mock_api_client.set_leverage = AsyncMock(return_value={"status": "ok"})
+        d = bs.realtime_dispatcher()
+        exchange = Exchange(dispatcher=d, private_key="0xdeadbeef")
+        asyncio.run(exchange.perps_account.set_leverage("ETH", 10, is_cross=True))
+        mock_api_client.set_leverage.assert_called_once_with("ETH", 10, True)
+
+    def test_parse_order_result_infers_sell_side(self):
+        from basana.external.hyperliquid.perps import Account
+        order = Account._parse_order_result(
+            {"response": {"data": {"statuses": [{"filled": {"oid": 1, "totalSz": "1", "side": "A"}}]}}},
+            "ETH",
+        )
+        assert order.is_buy is False
+
+    def test_parse_order_result_infers_buy_side(self):
+        from basana.external.hyperliquid.perps import Account
+        order = Account._parse_order_result(
+            {"response": {"data": {"statuses": [{"filled": {"oid": 1, "totalSz": "1", "side": "B"}}]}}},
+            "ETH",
+        )
+        assert order.is_buy is True
+
+    def test_parse_order_result_unknown_side(self):
+        from basana.external.hyperliquid.perps import Account
+        order = Account._parse_order_result(
+            {"response": {"data": {"statuses": [{"filled": {"oid": 1, "totalSz": "1"}}]}}},
+            "ETH",
+        )
+        assert order.is_buy is False
