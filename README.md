@@ -11,7 +11,8 @@
 ## Key Features
 
 * Backtesting exchange so you can try your trading strategies before using real funds.
-* Live trading at [Binance](https://www.binance.com/) and [Bitstamp](https://www.bitstamp.net/) crypto currency exchanges.
+* Live trading at [Binance](https://www.binance.com/), [Bitstamp](https://www.bitstamp.net/) and [Hyperliquid](https://hyperliquid.xyz/) crypto currency exchanges.
+* Portfolio-level risk management with configurable limits (max positions, exposure caps, correlation buckets, daily loss caps, kill switch).
 * Asynchronous I/O and event driven.
 
 ## Getting Started

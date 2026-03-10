@@ -16,7 +16,7 @@
 
 import asyncio
 from decimal import Decimal
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 import pytest
 
 from basana.external.hyperliquid.client.rest import APIClient, Error
@@ -165,6 +165,52 @@ class TestAuthenticatedEndpoints:
     def test_address_none_without_key(self, mock_info):
         cli = APIClient()
         assert cli.address is None
+
+
+    def test_get_funding_history(self, mock_info):
+        mock_info.funding_history.return_value = [{"time": 1700000000000, "fundingRate": "0.0001"}]
+        cli = APIClient()
+        result = asyncio.run(cli.get_funding_history("ETH", 1700000000000, 1700003600000))
+        assert len(result) == 1
+        mock_info.funding_history.assert_called_once_with("ETH", 1700000000000, 1700003600000)
+
+
+class TestAuthenticatedEndpointsExtra:
+    def test_get_open_orders(self, mock_info, mock_account, mock_exchange_sdk):
+        mock_info.open_orders.return_value = [
+            {"oid": 1, "coin": "ETH", "side": "B", "sz": "0.5", "limitPx": "2000", "orderType": "Limit"}
+        ]
+        cli = APIClient(private_key="0xdeadbeef")
+        orders = asyncio.run(cli.get_open_orders())
+        assert len(orders) == 1
+        mock_info.open_orders.assert_called_once_with("0xDEADBEEF")
+
+    def test_get_order_status(self, mock_info, mock_account, mock_exchange_sdk):
+        mock_info.query_order_by_oid.return_value = {"oid": 42, "status": "filled"}
+        cli = APIClient(private_key="0xdeadbeef")
+        result = asyncio.run(cli.get_order_status(42))
+        assert result["oid"] == 42
+        mock_info.query_order_by_oid.assert_called_once_with("0xDEADBEEF", 42)
+
+    def test_get_user_fills(self, mock_info, mock_account, mock_exchange_sdk):
+        mock_info.user_fills_by_time.return_value = [{"coin": "ETH", "sz": "1"}]
+        cli = APIClient(private_key="0xdeadbeef")
+        fills = asyncio.run(cli.get_user_fills(1700000000000))
+        assert len(fills) == 1
+        mock_info.user_fills_by_time.assert_called_once_with("0xDEADBEEF", 1700000000000)
+
+    def test_market_close(self, mock_info, mock_account, mock_exchange_sdk):
+        mock_exchange_sdk.market_close.return_value = {"status": "ok", "response": {"data": {"statuses": [{}]}}}
+        cli = APIClient(private_key="0xdeadbeef")
+        result = asyncio.run(cli.market_close("ETH", 0.5))
+        assert result["status"] == "ok"
+
+    def test_limit_order(self, mock_info, mock_account, mock_exchange_sdk):
+        mock_exchange_sdk.order.return_value = {"status": "ok", "response": {"data": {"statuses": [{}]}}}
+        cli = APIClient(private_key="0xdeadbeef")
+        result = asyncio.run(cli.limit_order("ETH", True, 1.0, 2000.0, reduce_only=False))
+        assert result["status"] == "ok"
+        mock_exchange_sdk.order.assert_called_once()
 
 
 class TestOrderResultParsing:
