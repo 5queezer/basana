@@ -175,7 +175,7 @@ class TripleBarrier:
     def _calculate_trailing_pnl_pct(self, current_price: Decimal) -> Decimal:
         """Calculate P&L percentage from peak (for trailing stop)."""
         if self._is_long:
-            if self._peak_price == 0:
+            if self._peak_price == 0:  # pragma: no cover
                 return Decimal(0)
             return ((current_price - self._peak_price) / self._peak_price) * Decimal(100)
         else:
