@@ -49,9 +49,6 @@ jobs:
     - name: Initialize the virtual environment.
       run: |
         poetry install --no-root --all-extras --without=docs
-    - name: Ensure setuptools available (needed by eth_keyfile for pkg_resources)
-      run: |
-        poetry run pip install setuptools
     - name: Static checks
       run: |
         poetry run -- mypy basana
