@@ -222,6 +222,6 @@ class Exchange:
     # Lifecycle
     # ------------------------------------------------------------------
 
-    async def main(self):
+    async def main(self):  # pragma: no cover
         """Run the WebSocket client. Called automatically by the event dispatcher."""
         await self._ws.main()
