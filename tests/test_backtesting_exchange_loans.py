@@ -196,7 +196,7 @@ def test_borrow_and_repay(
         assert loan.borrowed_amount == loan_amount
 
         # Time to repay. Move clock if necessary.
-        backtesting_dispatcher._set_now(dt.local_now())
+        backtesting_dispatcher._set_now(now)
         if repay_after:
             backtesting_dispatcher._set_now(backtesting_dispatcher.now() + repay_after)
 
