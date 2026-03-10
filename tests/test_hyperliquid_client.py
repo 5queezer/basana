@@ -16,7 +16,7 @@
 
 import asyncio
 from decimal import Decimal
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 import pytest
 
 from basana.external.hyperliquid.client.rest import APIClient, Error

@@ -130,7 +130,9 @@ class Account:
     # Order management
     # ------------------------------------------------------------------
 
-    async def market_open(self, coin: str, operation: OrderOperation, size: Decimal, slippage: float = 0.01) -> OrderInfo:
+    async def market_open(
+        self, coin: str, operation: OrderOperation, size: Decimal, slippage: float = 0.01
+    ) -> OrderInfo:
         """Open a position at market price.
 
         :param coin: e.g. ``"ETH"``
