@@ -24,8 +24,8 @@ from basana.external.hyperliquid import config
 
 try:
     import eth_account  # type: ignore[import-untyped]
-    from hyperliquid.info import Info  # type: ignore[import-untyped]
-    from hyperliquid.exchange import Exchange as HLExchange  # type: ignore[import-untyped]
+    from hyperliquid.info import Info  # type: ignore[import-untyped]  # pragma: no cover
+    from hyperliquid.exchange import Exchange as HLExchange  # type: ignore[import-untyped]  # pragma: no cover
 except ImportError:
     eth_account = None  # type: ignore[assignment]
     Info = None  # type: ignore[assignment, misc]
@@ -60,7 +60,7 @@ class APIClient:
         if config_overrides is None:
             config_overrides = {}
         base_url = get_config_value(config.DEFAULTS, "api.http.base_url", overrides=config_overrides).rstrip("/")
-        if Info is None:
+        if Info is None:  # pragma: no cover
             raise ImportError(
                 "Hyperliquid support requires the [hyperliquid] extra. "
                 "Install with: pip install basana[hyperliquid]"
