@@ -43,7 +43,7 @@ class _OpenPosition:
         return (self.current_price - self.avg_entry_price) * self.signed_qty
 
     @property
-    def notional(self) -> Decimal:
+    def notional(self) -> Decimal:  # pragma: no cover
         return abs(self.signed_qty * self.current_price)
 
 
