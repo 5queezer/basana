@@ -42,10 +42,6 @@ class _OpenPosition:
     def unrealized_pnl(self) -> Decimal:
         return (self.current_price - self.avg_entry_price) * self.signed_qty
 
-    @property
-    def notional(self) -> Decimal:  # pragma: no cover
-        return abs(self.signed_qty * self.current_price)
-
 
 class TradingLedger:
     """Paper trading ledger that records fills, tracks equity, and produces analytics.
