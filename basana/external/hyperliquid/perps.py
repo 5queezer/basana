@@ -17,11 +17,12 @@
 from decimal import Decimal
 from typing import Any, Awaitable, Callable, List, Optional, cast
 import dataclasses
+import datetime
 import logging
 
 from basana.core import dispatcher
 from basana.core.enums import OrderOperation
-from . import client, websockets
+from . import client, helpers, websockets
 
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,83 @@ class Position:
     leverage: Decimal
     #: Margin used in USD.
     margin_used: Decimal
+    #: Current mark price, or ``None`` if unknown.
+    mark_price: Optional[Decimal] = None
+    #: Cumulative funding paid (negative = received), or ``None`` if unknown.
+    cumulative_funding: Optional[Decimal] = None
+
+    @property
+    def is_long(self) -> bool:
+        """``True`` if the position is long."""
+        return self.size > 0
+
+    @property
+    def is_short(self) -> bool:
+        """``True`` if the position is short."""
+        return self.size < 0
+
+    @property
+    def notional_value(self) -> Decimal:
+        """Absolute notional value based on entry price."""
+        return abs(self.size * self.entry_price)
+
+    @property
+    def return_on_equity(self) -> Optional[Decimal]:
+        """Return on margin used, or ``None`` if margin is zero."""
+        if self.margin_used == 0:
+            return None
+        return self.unrealized_pnl / self.margin_used
+
+    @property
+    def liquidation_distance_pct(self) -> Optional[Decimal]:
+        """Distance to liquidation as a percentage of mark/entry price.
+
+        Returns ``None`` if liquidation price or mark price is unknown.
+        """
+        if self.liquidation_price is None:
+            return None
+        ref_price = self.mark_price if self.mark_price is not None else self.entry_price
+        if ref_price == 0:
+            return None
+        return abs(ref_price - self.liquidation_price) / ref_price * Decimal(100)
+
+
+@dataclasses.dataclass(frozen=True)
+class FillEvent:
+    """A structured fill from the exchange."""
+
+    #: Coin (e.g. ``"ETH"``).
+    coin: str
+    #: Order ID.
+    oid: int
+    #: ``True`` if buy side.
+    is_buy: bool
+    #: Fill size.
+    size: Decimal
+    #: Fill price.
+    price: Decimal
+    #: Fee paid (always positive).
+    fee: Decimal
+    #: Realized P&L from this fill (if closing/reducing a position).
+    realized_pnl: Decimal
+    #: When the fill occurred.
+    when: datetime.datetime
+    #: Whether this fill crossed the spread (taker) or rested (maker).
+    is_maker: bool = False
+
+
+@dataclasses.dataclass(frozen=True)
+class FundingPayment:
+    """A single funding rate payment record."""
+
+    #: Coin (e.g. ``"ETH"``).
+    coin: str
+    #: Funding rate as a decimal (e.g. ``Decimal("0.0001")`` = 0.01%).
+    rate: Decimal
+    #: Payment amount in USD (negative = received by longs, positive = paid by longs).
+    payment: Decimal
+    #: Timestamp of the funding event.
+    when: datetime.datetime
 
 
 @dataclasses.dataclass(frozen=True)
@@ -87,21 +165,37 @@ class Account:
     # ------------------------------------------------------------------
 
     async def get_positions(self) -> List[Position]:
-        """Return all open perpetuals positions."""
+        """Return all open perpetuals positions.
+
+        Each position includes mark price when available from the exchange mid-price feed.
+        """
         state = await self._cli.get_user_state()
+        # Fetch current mid prices to enrich positions with mark price.
+        try:
+            mids = await self._cli.get_all_mids()
+        except Exception:
+            mids = {}
         positions = []
         for p in state.get("assetPositions", []):
             pos = p.get("position", {})
             if pos.get("szi") == "0":
                 continue
+            coin = pos["coin"]
+            mark = Decimal(mids[coin]) if coin in mids else None
+            cum_funding_raw = pos.get("cumFunding", {})
+            cum_funding = None
+            if "sinceOpen" in cum_funding_raw:
+                cum_funding = Decimal(str(cum_funding_raw["sinceOpen"]))
             positions.append(Position(
-                coin=pos["coin"],
+                coin=coin,
                 size=Decimal(pos["szi"]),
                 entry_price=Decimal(pos["entryPx"]) if pos.get("entryPx") else Decimal(0),
                 unrealized_pnl=Decimal(pos.get("unrealizedPnl", "0")),
                 liquidation_price=Decimal(pos["liquidationPx"]) if pos.get("liquidationPx") else None,
                 leverage=Decimal(str(pos.get("leverage", {}).get("value", 1))),
                 margin_used=Decimal(pos.get("marginUsed", "0")),
+                mark_price=mark,
+                cumulative_funding=cum_funding,
             ))
         return positions
 
@@ -188,6 +282,42 @@ class Account:
         await self._cli.set_leverage(coin, leverage, is_cross)
 
     # ------------------------------------------------------------------
+    # Funding & analytics
+    # ------------------------------------------------------------------
+
+    async def get_funding_history(
+        self, coin: str, start_time: datetime.datetime, end_time: Optional[datetime.datetime] = None
+    ) -> List[FundingPayment]:
+        """Return funding rate history for ``coin``.
+
+        :param coin: e.g. ``"ETH"``
+        :param start_time: Start datetime (timezone-aware).
+        :param end_time: End datetime (timezone-aware). ``None`` for now.
+        """
+        start_ms = int(start_time.timestamp() * 1000)
+        end_ms = int(end_time.timestamp() * 1000) if end_time else None
+        raw = await self._cli.get_funding_history(coin, start_ms, end_ms)
+        return [self._parse_funding(coin, f) for f in raw]
+
+    async def get_fills(self, start_time: datetime.datetime) -> List[FillEvent]:
+        """Return trade fills since ``start_time``.
+
+        :param start_time: Start datetime (timezone-aware).
+        """
+        start_ms = int(start_time.timestamp() * 1000)
+        raw = await self._cli.get_user_fills(start_ms)
+        return [self._parse_fill(f) for f in raw]
+
+    async def get_margin_summary(self) -> dict:
+        """Return the full margin summary from the exchange.
+
+        The returned dict includes ``accountValue``, ``totalMarginUsed``,
+        ``totalNtlPos``, ``totalRawUsd``, and ``withdrawable``.
+        """
+        state = await self._cli.get_user_state()
+        return state.get("marginSummary", {})
+
+    # ------------------------------------------------------------------
     # Real-time events
     # ------------------------------------------------------------------
 
@@ -200,6 +330,21 @@ class Account:
             raise client.Error("Private key required to subscribe to fill events")
 
         channel = websockets._user_fills_channel(self._cli.address)
+        event_source = self._ws.get_channel_event_source(channel)
+        if event_source is None:
+            event_source = websockets.RawEventSource(producer=self._ws)
+            self._ws.set_channel_event_source(channel, event_source)
+        self._dispatcher.subscribe(event_source, cast(dispatcher.EventHandler, handler))
+
+    def subscribe_to_order_updates(self, handler: FillEventHandler) -> None:
+        """Subscribe to real-time order update events via WebSocket.
+
+        :param handler: Async callable receiving an order update dict.
+        """
+        if not self._cli.address:
+            raise client.Error("Private key required to subscribe to order updates")
+
+        channel = websockets._order_updates_channel(self._cli.address)
         event_source = self._ws.get_channel_event_source(channel)
         if event_source is None:
             event_source = websockets.RawEventSource(producer=self._ws)
@@ -231,4 +376,29 @@ class Account:
             limit_price=None,
             filled=Decimal(str(filled.get("totalSz", "0"))),
             status="filled" if filled else s.get("error", "unknown"),
+        )
+
+    @staticmethod
+    def _parse_fill(raw: dict) -> FillEvent:
+        when = helpers.timestamp_to_datetime(int(raw["time"]))
+        return FillEvent(
+            coin=raw["coin"],
+            oid=int(raw.get("oid", 0)),
+            is_buy=raw.get("side", "") == "B",
+            size=Decimal(str(raw["sz"])),
+            price=Decimal(str(raw["px"])),
+            fee=Decimal(str(raw.get("fee", "0"))),
+            realized_pnl=Decimal(str(raw.get("closedPnl", "0"))),
+            when=when,
+            is_maker=raw.get("liquidation", "") == "" and raw.get("crossed", True) is False,
+        )
+
+    @staticmethod
+    def _parse_funding(coin: str, raw: dict) -> FundingPayment:
+        when = helpers.timestamp_to_datetime(int(raw["time"]))
+        return FundingPayment(
+            coin=coin,
+            rate=Decimal(str(raw["fundingRate"])),
+            payment=Decimal(str(raw.get("payment", "0"))),
+            when=when,
         )

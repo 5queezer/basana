@@ -13,7 +13,9 @@
 * Backtesting exchange so you can try your trading strategies before using real funds.
 * Live trading at [Binance](https://www.binance.com/), [Bitstamp](https://www.bitstamp.net/) and [Hyperliquid](https://hyperliquid.xyz/) crypto currency exchanges.
 * Portfolio-level risk management with configurable limits (max positions, exposure caps, correlation buckets, daily loss caps, kill switch).
+* First-class perpetuals support: structured fills, funding rate tracking, mark price, liquidation distance monitoring, and perp-specific risk limits (leverage, margin utilization).
 * Paper trading ledger with trade journal, equity curve tracking, and performance analytics (Sharpe, Sortino, Calmar, drawdown, profit factor).
+* Walk-forward evaluation engine with expanding/sliding windows for temporal-safe strategy validation.
 * Asynchronous I/O and event driven.
 
 ## Getting Started

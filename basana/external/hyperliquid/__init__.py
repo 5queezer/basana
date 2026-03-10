@@ -14,13 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .exchange import AssetInfo, BarEventHandler, Error, Exchange, OrderInfo, Position
+from .exchange import AssetInfo, BarEventHandler, Error, Exchange, FillEvent, FundingPayment, OrderInfo, Position
 
 __all__ = [
     "AssetInfo",
     "BarEventHandler",
     "Error",
     "Exchange",
+    "FillEvent",
+    "FundingPayment",
     "OrderInfo",
     "Position",
 ]

@@ -26,6 +26,11 @@ from basana.core.risk.limits import (
     RiskLimit,
 )
 from basana.core.risk.manager import RiskManager
+from basana.core.risk.perp_limits import (
+    LiquidationDistanceLimit,
+    MarginUtilizationLimit,
+    MaxLeverageLimit,
+)
 from basana.core.risk.portfolio import PortfolioTracker
 from basana.core.risk.types import (
     DeploymentMode,

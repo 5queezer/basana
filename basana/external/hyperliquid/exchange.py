@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 BarEventHandler = Callable[[bar.BarEvent], Awaitable[Any]]
 Error = client.Error
+FillEvent = perps.FillEvent
+FundingPayment = perps.FundingPayment
 OrderInfo = perps.OrderInfo
 Position = perps.Position
 
@@ -177,6 +179,13 @@ class Exchange:
             raise Error(f"Unknown coin: {coin}")
         return Decimal(mids[coin])
 
+    async def get_mark_price(self, coin: str) -> Decimal:
+        """Return the current mark price for ``coin``.
+
+        On Hyperliquid the mark price is the oracle mid price.
+        """
+        return await self.get_mid_price(coin)
+
     async def get_bid_ask(self, coin: str) -> Tuple[Decimal, Decimal]:
         """Return the best bid and ask prices for ``coin``."""
         book = await self._cli.get_l2_snapshot(coin)
@@ -184,6 +193,19 @@ class Exchange:
         bid = Decimal(levels[0][0]["px"]) if levels[0] else Decimal(0)
         ask = Decimal(levels[1][0]["px"]) if levels[1] else Decimal(0)
         return bid, ask
+
+    async def get_funding_rate(self, coin: str) -> Optional[Decimal]:
+        """Return the most recent funding rate for ``coin``, or ``None`` if unavailable.
+
+        The rate is a decimal fraction (e.g. ``Decimal("0.0001")`` = 0.01%).
+        """
+        import time
+        end_ms = int(time.time() * 1000)
+        start_ms = end_ms - 8 * 3600 * 1000  # last 8 hours
+        raw = await self._cli.get_funding_history(coin, start_ms, end_ms)
+        if not raw:
+            return None
+        return Decimal(str(raw[-1]["fundingRate"]))
 
     async def get_pair_info(self, coin: str) -> AssetInfo:
         """Return metadata for a tradeable asset.
