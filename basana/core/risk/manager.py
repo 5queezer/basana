@@ -77,6 +77,15 @@ class RiskManager(event.FifoQueueEventSource):
         """The portfolio tracker."""
         return self._portfolio
 
+    def set_mode(self, mode: DeploymentMode) -> None:
+        """Change the deployment mode at runtime.
+
+        :param mode: The new deployment mode.
+        """
+        old_mode = self._mode
+        self._mode = mode
+        logger.info(logs.StructuredMessage("Deployment mode changed", old=old_mode.value, new=mode.value))
+
     def activate_kill_switch(self, reason: str) -> None:
         """Activate the kill switch, blocking all new risk-increasing signals.
 
