@@ -8,6 +8,7 @@ from typing import Optional
 import aiohttp
 
 import basana as bs
+from basana.core import event
 from .llm_analyzer import LLMAnalyzer
 from .thresholds import SignalThresholds
 
@@ -42,9 +43,13 @@ class LunarCrushSignalEvent(bs.Event):
         self.confidence = confidence
 
 
-class LunarCrushSSESource(bs.EventSource):
+class LunarCrushSSESource(event.FifoQueueEventSource, event.Producer):
     """Connects to LunarCrush SSE stream and emits LunarCrushSignalEvent
-    when configurable thresholds are exceeded and LLM confirms the signal."""
+    when configurable thresholds are exceeded and LLM confirms the signal.
+
+    Extends FifoQueueEventSource + Producer so basana's dispatcher manages
+    the producer lifecycle (initialize → main → finalize).
+    """
 
     def __init__(
         self,
@@ -52,15 +57,14 @@ class LunarCrushSSESource(bs.EventSource):
         thresholds: Optional[SignalThresholds] = None,
         llm_analyzer: Optional[LLMAnalyzer] = None,
     ):
-        super().__init__()
+        super().__init__(producer=self)
         self._api_key = api_key or os.getenv("LUNARCRUSH_API_KEY", "")
         self._thresholds = thresholds or SignalThresholds()
         self._llm = llm_analyzer or LLMAnalyzer()
-        self._queue: asyncio.Queue = asyncio.Queue()
-        self._task: Optional[asyncio.Task] = None
         self._social_dominance_history: dict = {}
 
     async def initialize(self) -> None:
+        """Fetch baseline social dominance for threshold comparison."""
         try:
             async with aiohttp.ClientSession() as session:
                 for coin in self._thresholds.coins:
@@ -71,10 +75,12 @@ class LunarCrushSSESource(bs.EventSource):
                         data = await resp.json()
                         sd = data.get("data", {}).get("social_dominance", 1.0)
                         self._social_dominance_history[coin] = [sd] * 7
+                        logger.info(f"Baseline social dominance for {coin}: {sd:.2f}%")
         except Exception as e:
             logger.warning(f"Failed to initialize baseline social dominance: {e}")
 
-    async def _listen_sse(self) -> None:
+    async def main(self) -> None:
+        """Producer main loop — connects to SSE stream and processes events."""
         url = "https://lunarcrush.ai/sse"
         headers = {"Authorization": f"Bearer {self._api_key}"}
         while True:
@@ -92,6 +98,8 @@ class LunarCrushSSESource(bs.EventSource):
                                 continue
                             for coin_data in payload.get("data", []):
                                 await self._process_coin(coin_data)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.warning(f"SSE connection lost: {e}. Reconnecting in 5s...")
                 await asyncio.sleep(5)
@@ -144,7 +152,7 @@ class LunarCrushSSESource(bs.EventSource):
             logger.info(f"LLM dismissed signal for {symbol}: {analysis.get('reasoning')}")
             return
 
-        await self._queue.put(
+        self.push(
             LunarCrushSignalEvent(
                 when=datetime.now(timezone.utc),
                 coin=symbol,
@@ -159,12 +167,3 @@ class LunarCrushSSESource(bs.EventSource):
                 confidence=float(analysis.get("confidence", 0.0)),
             )
         )
-
-    async def next(self) -> Optional[bs.Event]:
-        if self._task is None:
-            await self.initialize()
-            self._task = asyncio.create_task(self._listen_sse())
-        try:
-            return self._queue.get_nowait()
-        except asyncio.QueueEmpty:
-            return None

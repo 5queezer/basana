@@ -29,7 +29,7 @@ class PaperTradingStrategy:
         self.cash = initial_capital
         self.trades = []
 
-    async def on_signal(self, event: LunarCrushSignalEvent, source: bs.EventSource) -> None:
+    async def on_signal(self, event: LunarCrushSignalEvent) -> None:
         logger.info(
             "[SIGNAL] %s | %s (confidence=%.2f) | Galaxy=%.1f AltRank=%d Dominance=%.1fx | %s",
             event.coin, event.recommendation.upper(), event.confidence,
@@ -51,7 +51,7 @@ async def main() -> None:
     strategy = PaperTradingStrategy(initial_capital=10_000.0)
     thresholds = SignalThresholds(coins=["ETH", "BTC"], galaxy_score_min=65.0, social_dominance_spike=2.0, alt_rank_max=20)
     source = LunarCrushSSESource(api_key=os.getenv("LUNARCRUSH_API_KEY"), thresholds=thresholds, llm_analyzer=LLMAnalyzer())
-    dispatcher.subscribe(LunarCrushSignalEvent, strategy.on_signal)
+    dispatcher.subscribe(source, strategy.on_signal)
     await dispatcher.run()
 
 
