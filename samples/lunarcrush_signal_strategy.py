@@ -49,8 +49,12 @@ class PaperTradingStrategy:
 async def main() -> None:
     dispatcher = bs.realtime_dispatcher()
     strategy = PaperTradingStrategy(initial_capital=10_000.0)
-    thresholds = SignalThresholds(coins=["ETH", "BTC"], galaxy_score_min=65.0, social_dominance_spike=2.0, alt_rank_max=20)
-    source = LunarCrushSSESource(api_key=os.getenv("LUNARCRUSH_API_KEY"), thresholds=thresholds, llm_analyzer=LLMAnalyzer())
+    thresholds = SignalThresholds(
+        coins=["ETH", "BTC"], galaxy_score_min=65.0, social_dominance_spike=2.0, alt_rank_max=20
+    )
+    source = LunarCrushSSESource(
+        api_key=os.getenv("LUNARCRUSH_API_KEY"), thresholds=thresholds, llm_analyzer=LLMAnalyzer()
+    )
     dispatcher.subscribe(source, strategy.on_signal)
     await dispatcher.run()
 

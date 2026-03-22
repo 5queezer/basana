@@ -3,7 +3,6 @@
 Tests use mocked SSE streams and LLM responses — no real network calls.
 """
 
-import asyncio
 import json
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -12,7 +11,6 @@ import pytest
 
 from basana.external.lunarcrush import LunarCrushSSESource, LunarCrushSignalEvent, SignalThresholds
 from basana.external.lunarcrush.llm_analyzer import LLMAnalyzer
-from basana.external.lunarcrush.thresholds import SignalThresholds
 
 
 # ---------------------------------------------------------------------------
