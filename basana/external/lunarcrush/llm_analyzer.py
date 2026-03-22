@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from .thresholds import SignalThresholds
 
 import aiohttp
 

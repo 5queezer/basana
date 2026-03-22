@@ -19,11 +19,16 @@ Usage:
     source = LunarCrushSSESource(llm_analyzer=analyzer)
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
 from datetime import date
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from .thresholds import SignalThresholds
 
 logger = logging.getLogger(__name__)
 
@@ -84,12 +89,12 @@ class TradingAgentsAnalyzer:
         self._analysts = analysts or ["market", "social", "news", "fundamentals"]
         self._max_debate = max_debate_rounds
         self._max_risk = max_risk_rounds
-        self._graph = None  # lazy-init (import is slow)
+        self._graph: Any = None  # lazy-init (import is slow)
 
     def _build_graph(self):
         """Lazy-import and configure TradingAgentsGraph."""
         try:
-            from tradingagents.graph.trading_graph import TradingAgentsGraph
+            from tradingagents.graph.trading_graph import TradingAgentsGraph  # type: ignore[import-not-found]
         except ImportError as e:
             raise ImportError(
                 "tradingagents not installed. Run: pip install tradingagents-cn"
